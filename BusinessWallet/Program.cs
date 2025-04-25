@@ -1,13 +1,30 @@
+using BusinessWallet.data;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// ---------------------------------------------------------------------
+// 1. Database-context registreren  (SQLite)
+// ---------------------------------------------------------------------
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                      ?? throw new InvalidOperationException(
+                           "Connection string 'DefaultConnection' not found.");
+
+builder.Services.AddDbContext<DataContext>(options =>
+    options.UseSqlite(connectionString));   // ← SQLite-provider
+
+// ---------------------------------------------------------------------
+// 2. API & Swagger
+// ---------------------------------------------------------------------
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ---------------------------------------------------------------------
+// 3. Middleware-pipeline
+// ---------------------------------------------------------------------
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -16,14 +33,20 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.MapControllers();
+
+// ---------------------------------------------------------------------
+// 4. Demo-endpoint (optioneel)
+// ---------------------------------------------------------------------
 var summaries = new[]
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+    "Freezing", "Bracing", "Chilly", "Cool", "Mild",
+    "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
 app.MapGet("/weatherforecast", () =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
+    var forecast = Enumerable.Range(1, 5).Select(index =>
         new WeatherForecast
         (
             DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
@@ -38,6 +61,9 @@ app.MapGet("/weatherforecast", () =>
 
 app.Run();
 
+// ---------------------------------------------------------------------
+// 5. Record-type voor het demo-endpoint
+// ---------------------------------------------------------------------
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
