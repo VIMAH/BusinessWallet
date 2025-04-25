@@ -7,9 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.15" />
+    <!-- Swagger / OpenAPI -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi"        Version="8.0.15" />
+    <PackageReference Include="Swashbuckle.AspNetCore"              Version="6.6.2" />
+
+    <!-- Entity Framework Core 9 (SQLite) -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.4" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>
