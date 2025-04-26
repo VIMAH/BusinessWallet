@@ -70,7 +70,7 @@ dotnet build --configuration Release --no-restore
 log "→ Starting application met dotnet run..."
 RUNTIME_LOG="${LOG_DIR}/runtime.$(date '+%Y%m%d_%H%M%S').log"
 DOTNET_ENVIRONMENT="${DOTNET_ENV}" \
-nohup dotnet run --configuration Release --no-build --no-launch-profile \
+nohup dotnet run --configuration Release --no-build --no-launch-profile --project "${PROJECT_DIR}/BusinessWallet.csproj" \
      > "${RUNTIME_LOG}" 2>&1 &
 
 APP_PID=$!
