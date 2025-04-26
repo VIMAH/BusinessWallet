@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Simple deploy script for BusinessWallet
-
+#this is a test
 set -euo pipefail
  
 # ─── Configuration ─────────────────────────────────────────────────
