@@ -15,9 +15,11 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite(connectionString));   // ← SQLite-provider
+
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
-builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
+builder.Services.AddAutoMapper(typeof(BusinessWallet.utils.MappingProfile));
+
 
 // ---------------------------------------------------------------------
 // 2. API & Swagger

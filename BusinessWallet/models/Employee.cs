@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using BusinessWallet.models.Enums;
 
 namespace BusinessWallet.models
@@ -16,11 +17,15 @@ namespace BusinessWallet.models
         // ───── Persoonlijke info ─────
         [MaxLength(150)] public string? FirstName { get; set; }
         [MaxLength(150)] public string? LastName { get; set; }
+        public string? Voorvoegsel { get; set; }
+        public string? Voorletters { get; set; }
+        [DatabaseGenerated(DatabaseGeneratedOption.Computed)] public string FullName { get; private set; } = default!;
         [MaxLength(150)] public string? BirthName { get; set; }
         [MaxLength(50)] public string? Gender { get; set; }
         public DateTime? BirthDate { get; set; }
         public bool OlderThan18 { get; set; }
         [MaxLength(150)] public string? BirthPlace { get; set; }
+        public string? BirthCountry { get; set; }
         public bool Married { get; set; }
 
         // ───── Bedrijfsinfo ─────
@@ -43,5 +48,7 @@ namespace BusinessWallet.models
         // ───── Timestamps ─────
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? LaatsteAanmelding { get; set; } = DateTime.UtcNow;
+
     }
 }
