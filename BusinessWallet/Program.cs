@@ -33,11 +33,11 @@ var app = builder.Build();
 // ---------------------------------------------------------------------
 // 3. Middleware-pipeline
 // ---------------------------------------------------------------------
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// if (app.Environment.IsDevelopment())
+// {
+app.UseSwagger();
+app.UseSwaggerUI();
+// }
 
 app.UseHttpsRedirection();
 
