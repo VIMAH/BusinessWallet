@@ -15,7 +15,7 @@
 set -euo pipefail
 
 # ───── Configuratie ───────────────────────────────────────────────
-REPO_DIR="/home/ubuntu/businesswalletapi"          # root van je repo
+REPO_DIR="/root/businesswalletapi"          # root van je repo
 PROJECT_DIR="${REPO_DIR}/BusinessWallet"        # submap met .csproj
 LOG_DIR="/var/log/businesswallet"               # map voor logs
 DOTNET_ENV="Production"                         # of Development
