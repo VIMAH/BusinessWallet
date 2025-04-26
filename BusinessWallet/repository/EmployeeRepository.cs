@@ -1,33 +1,29 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+using BusinessWallet.data;
 using BusinessWallet.models;
-using BusinessWallet.data;            // <-- jouw DbContext-namespace
-                                      //    (pas aan als hij anders heet)
+using Microsoft.EntityFrameworkCore;
 
 namespace BusinessWallet.repository
 {
-    /// <summary>
-    /// EF Core-implementatie van IEmployeeRepository.
-    /// </summary>
     public class EmployeeRepository : IEmployeeRepository
     {
         private readonly DataContext _ctx;
-
         public EmployeeRepository(DataContext ctx) => _ctx = ctx;
 
-        public async Task<Employee?> GetByIdAsync(Guid id) =>
-            await _ctx.Employees.FindAsync(id);
+        public async Task<Employee> CreateAsync(Employee entity)
+        {
+            _ctx.Employees.Add(entity);
+            await _ctx.SaveChangesAsync();
+            return entity;
+        }
+
+        public Task<Employee?> GetByIdAsync(Guid id) =>
+            _ctx.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id);
 
         public async Task<IEnumerable<Employee>> GetAllAsync() =>
-            await _ctx.Employees.ToListAsync();
-
-        public async Task AddAsync(Employee entity)
-        {
-            await _ctx.Employees.AddAsync(entity);
-            await _ctx.SaveChangesAsync();
-        }
+            await _ctx.Employees.AsNoTracking().ToListAsync();
 
         public async Task UpdateAsync(Employee entity)
         {
@@ -37,10 +33,9 @@ namespace BusinessWallet.repository
 
         public async Task<bool> DeleteAsync(Guid id)
         {
-            var entity = await _ctx.Employees.FindAsync(id);
-            if (entity is null) return false;
-
-            _ctx.Employees.Remove(entity);
+            var e = await _ctx.Employees.FindAsync(id);
+            if (e is null) return false;
+            _ctx.Employees.Remove(e);
             await _ctx.SaveChangesAsync();
             return true;
         }
