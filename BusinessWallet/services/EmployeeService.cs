@@ -1,44 +1,55 @@
 using AutoMapper;
 using BusinessWallet.DTOs;
 using BusinessWallet.models;
-using BusinessWallet.models.Enums;
 using BusinessWallet.repository;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace BusinessWallet.services
 {
+    /// <inheritdoc />
     public class EmployeeService : IEmployeeService
     {
-        private readonly IEmployeeRepository _repo;
+        private readonly IEmployeeRepository _repository;
         private readonly IMapper _mapper;
 
-        public EmployeeService(IEmployeeRepository repo, IMapper mapper)
+        public EmployeeService(IEmployeeRepository repository, IMapper mapper)
         {
-            _repo = repo;
+            _repository = repository;
             _mapper = mapper;
         }
 
-        public async Task<EmployeeReadDTO> CreateAsync(EmployeeCreateDTO dto)
+        public async Task<EmployeeDto?> GetByIdAsync(Guid id)
         {
-            var employee = _mapper.Map<Employee>(dto);
-
-            // defaults
-            employee.VerificationState = VerificationState.Unverified;
-            employee.EmployeeState = EmployeeState.Inactive;
-
-            var saved = await _repo.AddAsync(employee);
-            return _mapper.Map<EmployeeReadDTO>(saved);
+            var entity = await _repository.GetByIdAsync(id);
+            return entity is null ? null : _mapper.Map<EmployeeDto>(entity);
         }
 
-        public async Task<EmployeeReadDTO?> GetByIdAsync(Guid id)
+        public async Task<IEnumerable<EmployeeDto>> GetAllAsync()
         {
-            var entity = await _repo.GetByIdAsync(id);
-            return entity is null ? null : _mapper.Map<EmployeeReadDTO>(entity);
+            var entities = await _repository.GetAllAsync();
+            return _mapper.Map<IEnumerable<EmployeeDto>>(entities);
         }
 
-        public async Task<IEnumerable<EmployeeReadDTO>> GetAllAsync()
+        public async Task<EmployeeDto> CreateAsync(EmployeeCreateDto dto)
         {
-            var list = await _repo.GetAllAsync();
-            return _mapper.Map<IEnumerable<EmployeeReadDTO>>(list);
+            var entity = _mapper.Map<Employee>(dto);
+            await _repository.AddAsync(entity);
+            return _mapper.Map<EmployeeDto>(entity);
         }
+
+        public async Task<EmployeeDto?> UpdateAsync(Guid id, EmployeeUpdateDto dto)
+        {
+            var entity = await _repository.GetByIdAsync(id);
+            if (entity is null) return null;
+
+            _mapper.Map(dto, entity);
+            await _repository.UpdateAsync(entity);
+
+            return _mapper.Map<EmployeeDto>(entity);
+        }
+
+        public async Task<bool> DeleteAsync(Guid id) => await _repository.DeleteAsync(id);
     }
 }

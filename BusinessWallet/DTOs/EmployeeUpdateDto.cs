@@ -1,9 +1,9 @@
 namespace BusinessWallet.DTOs
 {
     /// <summary>
-    /// DTO voor het aanmaken van een werknemer.
+    /// DTO voor het bijwerken van een werknemer.
     /// </summary>
-    public class EmployeeCreateDto
+    public class EmployeeUpdateDto
     {
         public string FirstName { get; set; } = default!;
         public string? Voorletters { get; set; }
