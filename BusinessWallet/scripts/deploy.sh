@@ -45,7 +45,13 @@ chmod +x "${PROJECT_DIR}/scripts/deploy.sh"
 log "→ Cleaning project..."
 dotnet clean --configuration Release
 
-# Run migrations
+# Create new migration
+log "→ Creating initial migration..."
+dotnet ef migrations add InitialCreate --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}" || {
+    log "⚠️ Migration already exists or failed to create."
+}
+
+# Update database
 log "→ Applying database migrations..."
 dotnet ef database update --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}" || {
     log "❌ Migration failed."
