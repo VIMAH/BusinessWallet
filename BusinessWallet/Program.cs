@@ -2,7 +2,7 @@ using BusinessWallet.data;
 using Microsoft.EntityFrameworkCore;
 using BusinessWallet.configurations;
 using BusinessWallet.repository;
-using BusinessWallet.services;
+using BusinessWallet.services; 
 
 var builder = WebApplication.CreateBuilder(args);
 
