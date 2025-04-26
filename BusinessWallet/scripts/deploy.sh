@@ -37,6 +37,11 @@ log "→ Pulling latest code..."
 git fetch origin main
 git reset --hard origin/main
 
+log "→ Fixing permissions..."
+chown -R $USER:$USER "${REPO_DIR}"
+chmod -R u+rw "${REPO_DIR}"
+chmod +x "${PROJECT_DIR}/scripts/deploy.sh"
+
 # Build clean
 log "→ Cleaning project..."
 dotnet clean --configuration Release
