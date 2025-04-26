@@ -1,5 +1,8 @@
 using BusinessWallet.data;
 using Microsoft.EntityFrameworkCore;
+using BusinessWallet.configurations;
+using BusinessWallet.repository;
+using BusinessWallet.services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +15,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite(connectionString));   // ← SQLite-provider
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
 
 // ---------------------------------------------------------------------
 // 2. API & Swagger
