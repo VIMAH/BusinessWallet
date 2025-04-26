@@ -30,6 +30,7 @@ cd "${PROJECT_DIR}"
 # Kill any existing app
 log "→ Stopping any running instance..."
 pkill -f "${APP_KILL_PATTERN}" 2>/dev/null || log "ℹ︎ No running instance found."
+pkill -f dotnet || echo "No existing dotnet processes found."
 
 # Update code
 log "→ Pulling latest code..."
