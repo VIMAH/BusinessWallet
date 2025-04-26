@@ -67,6 +67,7 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
+app.Urls.Add("http://localhost:5002");
 app.Run();
 
 // ---------------------------------------------------------------------
