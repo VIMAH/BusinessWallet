@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.UseUrls("http://localhost:5002");
+
 // ---------------------------------------------------------------------
 // 1. Database-context registreren (SQLite)
 // ---------------------------------------------------------------------
@@ -18,26 +20,32 @@ builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite(connectionString));   // ← SQLite-provider
 
 // ---------------------------------------------------------------------
-// 2. Services registreren
+// 2. Repositories registreren
 // ---------------------------------------------------------------------
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IEmployeeRoleRepository, EmployeeRoleRepository>();
+
+// ---------------------------------------------------------------------
+// 3. Services registreren
+// ---------------------------------------------------------------------
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<IEmployeeRoleService, EmployeeRoleService>();
 builder.Services.AddAutoMapper(typeof(BusinessWallet.utils.MappingProfile));
 
 // ---------------------------------------------------------------------
-// 3. API & Swagger
+// 4. API & Swagger
 // ---------------------------------------------------------------------
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // ---------------------------------------------------------------------
-// 4. Build app
+// 5. Build app
 // ---------------------------------------------------------------------
 var app = builder.Build();
 
 // ---------------------------------------------------------------------
-// 5. Database migraties + seeding
+// 6. Database migraties + seeding
 // ---------------------------------------------------------------------
 using (var scope = app.Services.CreateScope())
 {
@@ -49,7 +57,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ---------------------------------------------------------------------
-// 6. Middleware-pipeline
+// 7. Middleware-pipeline
 // ---------------------------------------------------------------------
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -59,7 +67,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 // ---------------------------------------------------------------------
-// 7. Demo-endpoint (optioneel)
+// 8. Demo-endpoint (optioneel)
 // ---------------------------------------------------------------------
 var summaries = new[]
 {
@@ -82,15 +90,25 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
-app.Urls.Add("http://0.0.0.0:5002");
+// app.Urls.Add("http://0.0.0.0:5002");
 
 // ---------------------------------------------------------------------
-// 8. Start de app
+// 9. Start de app
 // ---------------------------------------------------------------------
+
+// ----- Hieronder specifieke tabel data verwijdere, maar niet tabel zelf -----
+// using (var scope = app.Services.CreateScope())
+// {
+//     var context = scope.ServiceProvider.GetRequiredService<DataContext>();
+//     context.EmployeeRoles.RemoveRange(context.EmployeeRoles);
+//     context.Employees.RemoveRange(context.Employees);
+//     await context.SaveChangesAsync();
+// }
+
 app.Run();
 
 // ---------------------------------------------------------------------
-// 9. Record-type voor het demo-endpoint
+// 10. Record-type voor het demo-endpoint
 // ---------------------------------------------------------------------
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
