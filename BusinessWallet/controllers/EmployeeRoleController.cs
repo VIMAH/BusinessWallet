@@ -36,22 +36,31 @@ namespace BusinessWallet.controllers
         }
 
         /* -------------------------------------------------------------
-         * PUT: api/EmployeeRole
-         * Body: EmployeeRoleUpdateDto
-         * Wijzigen van (of vervangen door) een rol
-         * ----------------------------------------------------------- */
-        [HttpPut]
-        public async Task<IActionResult> UpdateRole([FromBody] EmployeeRoleUpdateDto dto)
+   * PUT: api/EmployeeRole/{employeeId}/{currentRoleId}
+   * Body:  { "newRoleId": "...", "assignedAt": "...", "expiresAt": "..." }
+   * ----------------------------------------------------------- */
+        [HttpPut("{employeeId:guid}/{currentRoleId:guid}")]
+        public async Task<IActionResult> UpdateRole(
+                Guid employeeId,
+                Guid currentRoleId,
+                [FromBody] EmployeeRoleUpdateDto dto)
         {
             try
             {
+                dto.EmployeeId = employeeId;    // route → body
+                dto.CurrentRoleId = currentRoleId; // route → body
+
+                // als client geen nieuwe rol doorstuurt, laat dan gelijk aan huidige
+                if (dto.NewRoleId == Guid.Empty)
+                    dto.NewRoleId = currentRoleId;
+
                 await _service.UpdateRoleAsync(dto);
-                return NoContent();              // 204
+                return NoContent();                // 204
             }
             catch (ResourceNotFoundException ex)
             {
                 _logger.LogWarning(ex.Message);
-                return NotFound(ex.Message);     // 404
+                return NotFound(ex.Message);       // 404
             }
         }
 

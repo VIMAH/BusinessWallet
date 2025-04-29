@@ -33,29 +33,30 @@ namespace BusinessWallet.services
         /* ---------- PUT /employeeRoles ---------- */
         public async Task UpdateRoleAsync(EmployeeRoleUpdateDto dto)
         {
-            var current = await _repository.GetByIdsAsync(dto.EmployeeId, dto.RoleId);
+            // 1. haal de bestaande record op met de OUDE PK
+            var current = await _repository.GetByIdsAsync(dto.EmployeeId, dto.CurrentRoleId);
 
             if (current is null)
                 throw new ResourceNotFoundException(
-                    $"EmployeeRole met EmployeeId {dto.EmployeeId} en RoleId {dto.RoleId} niet gevonden.");
+                    $"EmployeeRole met EmployeeId {dto.EmployeeId} en RoleId {dto.CurrentRoleId} niet gevonden.");
 
-            // Business-regel: als RoleId wijzigt → oude record weg, nieuwe record terugplaatsen.
-            if (dto.RoleId != current.RoleId)
+            // 2. moet de sleutel veranderen?
+            if (dto.NewRoleId != dto.CurrentRoleId)
             {
+                // delete + create
                 await _repository.DeleteAsync(current);
 
                 var replacement = new EmployeeRole
                 {
                     EmployeeId = dto.EmployeeId,
-                    RoleId = dto.RoleId,
-                    AssignedAt = dto.AssignedAt ?? DateTime.UtcNow,
+                    RoleId = dto.NewRoleId,
                     ExpiresAt = dto.ExpiresAt
                 };
                 await _repository.CreateAsync(replacement);
             }
             else
             {
-                current.AssignedAt = dto.AssignedAt ?? current.AssignedAt;
+                // alleen velden bijwerken
                 current.ExpiresAt = dto.ExpiresAt;
                 await _repository.UpdateAsync(current);
             }
