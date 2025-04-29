@@ -39,21 +39,11 @@ namespace BusinessWallet.controllers
    * PUT: api/EmployeeRole/{employeeId}/{currentRoleId}
    * Body:  { "newRoleId": "...", "assignedAt": "...", "expiresAt": "..." }
    * ----------------------------------------------------------- */
-        [HttpPut("{employeeId:guid}/{currentRoleId:guid}")]
-        public async Task<IActionResult> UpdateRole(
-                Guid employeeId,
-                Guid currentRoleId,
-                [FromBody] EmployeeRoleUpdateDto dto)
+        [HttpPut("/UpdateRoleById")]
+        public async Task<IActionResult> UpdateRole([FromBody] EmployeeRoleUpdateDto dto)
         {
             try
             {
-                dto.EmployeeId = employeeId;    // route → body
-                dto.CurrentRoleId = currentRoleId; // route → body
-
-                // als client geen nieuwe rol doorstuurt, laat dan gelijk aan huidige
-                if (dto.NewRoleId == Guid.Empty)
-                    dto.NewRoleId = currentRoleId;
-
                 await _service.UpdateRoleAsync(dto);
                 return NoContent();                // 204
             }
