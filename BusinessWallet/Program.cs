@@ -1,13 +1,16 @@
 using BusinessWallet.data;
-using Microsoft.EntityFrameworkCore;
 using BusinessWallet.configurations;
 using BusinessWallet.repository;
-using BusinessWallet.services; 
+using BusinessWallet.services;
+using BusinessWallet.data.Seed;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.UseUrls("http://localhost:5002");
+
 // ---------------------------------------------------------------------
-// 1. Database-context registreren  (SQLite)
+// 1. Database-context registreren (SQLite)
 // ---------------------------------------------------------------------
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                       ?? throw new InvalidOperationException(
@@ -16,35 +19,55 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite(connectionString));   // ← SQLite-provider
 
+// ---------------------------------------------------------------------
+// 2. Repositories registreren
+// ---------------------------------------------------------------------
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
-builder.Services.AddScoped<IEmployeeService, EmployeeService>();
-builder.Services.AddAutoMapper(typeof(BusinessWallet.utils.MappingProfile));
-
+builder.Services.AddScoped<IEmployeeRoleRepository, EmployeeRoleRepository>();
 
 // ---------------------------------------------------------------------
-// 2. API & Swagger
+// 3. Services registreren
+// ---------------------------------------------------------------------
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<IEmployeeRoleService, EmployeeRoleService>();
+builder.Services.AddAutoMapper(typeof(BusinessWallet.utils.MappingProfile));
+
+// ---------------------------------------------------------------------
+// 4. API & Swagger
 // ---------------------------------------------------------------------
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// ---------------------------------------------------------------------
+// 5. Build app
+// ---------------------------------------------------------------------
 var app = builder.Build();
 
 // ---------------------------------------------------------------------
-// 3. Middleware-pipeline
+// 6. Database migraties + seeding
 // ---------------------------------------------------------------------
-// if (app.Environment.IsDevelopment())
-// {
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<DataContext>();
+
+    context.Database.Migrate();
+    await RoleSeeder.SeedRolesAsync(context);
+}
+
+// ---------------------------------------------------------------------
+// 7. Middleware-pipeline
+// ---------------------------------------------------------------------
 app.UseSwagger();
 app.UseSwaggerUI();
-// }
 
 app.UseHttpsRedirection();
-
+app.UseAuthorization();
 app.MapControllers();
 
 // ---------------------------------------------------------------------
-// 4. Demo-endpoint (optioneel)
+// 8. Demo-endpoint (optioneel)
 // ---------------------------------------------------------------------
 var summaries = new[]
 {
@@ -67,11 +90,25 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
-app.Urls.Add("http://0.0.0.0:5002");
+// app.Urls.Add("http://0.0.0.0:5002");
+
+// ---------------------------------------------------------------------
+// 9. Start de app
+// ---------------------------------------------------------------------
+
+// ----- Hieronder specifieke tabel data verwijdere, maar niet tabel zelf -----
+// using (var scope = app.Services.CreateScope())
+// {
+//     var context = scope.ServiceProvider.GetRequiredService<DataContext>();
+//     context.EmployeeRoles.RemoveRange(context.EmployeeRoles);
+//     context.Employees.RemoveRange(context.Employees);
+//     await context.SaveChangesAsync();
+// }
+
 app.Run();
 
 // ---------------------------------------------------------------------
-// 5. Record-type voor het demo-endpoint
+// 10. Record-type voor het demo-endpoint
 // ---------------------------------------------------------------------
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
