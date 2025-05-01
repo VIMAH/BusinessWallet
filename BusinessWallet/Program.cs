@@ -44,6 +44,16 @@ builder.Services.AddSwaggerGen();
 // ---------------------------------------------------------------------
 // 5. Build app
 // ---------------------------------------------------------------------
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
 // ---------------------------------------------------------------------
@@ -63,6 +73,9 @@ using (var scope = app.Services.CreateScope())
 // ---------------------------------------------------------------------
 app.UseSwagger();
 app.UseSwaggerUI();
+=======
+app.UseCors("AllowAll");
+// }
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
@@ -92,7 +105,7 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
-// app.Urls.Add("http://0.0.0.0:5002");
+app.Urls.Add("http://0.0.0.0:5002");
 
 // ---------------------------------------------------------------------
 // 9. Start de app

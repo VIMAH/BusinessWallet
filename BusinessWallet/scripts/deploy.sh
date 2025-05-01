@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
+#test
 
 # Simple deploy script for BusinessWallet
-#this is a test
 set -euo pipefail
- 
+
 # ─── Configuration ─────────────────────────────────────────────────
 REPO_DIR="/root/businesswalletapi"
 PROJECT_DIR="${REPO_DIR}/BusinessWallet"
@@ -30,7 +30,7 @@ cd "${PROJECT_DIR}"
 # Kill any existing app
 log "→ Stopping any running instance..."
 pkill -f "${APP_KILL_PATTERN}" 2>/dev/null || log "ℹ︎ No running instance found."
-pkill -f dotnet || echo "No existing dotnet processes found."
+pkill -f dotnet || log "ℹ︎ No dotnet processes found."
 
 # Update code
 log "→ Pulling latest code..."
@@ -46,13 +46,20 @@ chmod +x "${PROJECT_DIR}/scripts/deploy.sh"
 log "→ Cleaning project..."
 dotnet clean --configuration Release
 
-log "→ Updating database (if migrations exist)..."
-if [ -d "${PROJECT_DIR}/Migrations" ]; then
-  dotnet ef database update --project "${PROJECT_DIR}"
-else
-  log "ℹ︎ No migrations found, skipping database update."
-fi
+# Create new migration
+log "→ Creating initial migration..."
+dotnet ef migrations add InitialCreate --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}" || {
+    log "⚠️ Migration already exists or failed to create."
+}
 
+# Update database
+log "→ Applying database migrations..."
+dotnet ef database update --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}" || {
+    log "❌ Migration failed."
+    exit 1
+}
+
+# Build project
 log "→ Building project..."
 dotnet build --configuration Release --no-restore
 
