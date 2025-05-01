@@ -45,8 +45,9 @@ chmod +x "${PROJECT_DIR}/scripts/deploy.sh"
 # Clean up migrations completely
 log "→ Cleaning up migrations..."
 if [ -d "${PROJECT_DIR}/Migrations" ]; then
-    # Remove all migration files except the snapshot
-    find "${PROJECT_DIR}/Migrations" -name "*.cs" -type f | grep -v "DataContextModelSnapshot.cs" | xargs rm -f
+    # Remove all migration files including the snapshot
+    rm -rf "${PROJECT_DIR}/Migrations"
+    mkdir -p "${PROJECT_DIR}/Migrations"
     log "✔︎ Removed all existing migrations"
 fi
 
