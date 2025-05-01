@@ -42,6 +42,19 @@ chown -R $USER:$USER "${REPO_DIR}"
 chmod -R u+rw "${REPO_DIR}"
 chmod +x "${PROJECT_DIR}/scripts/deploy.sh"
 
+# Clean up duplicate migrations
+log "→ Cleaning up migrations..."
+if [ -d "${PROJECT_DIR}/Migrations" ]; then
+    # Remove any duplicate InitialCreate migrations
+    find "${PROJECT_DIR}/Migrations" -name "*InitialCreate*" -type f -delete
+    # Keep only the latest migration if there are multiple
+    LATEST_MIGRATION=$(ls -t "${PROJECT_DIR}/Migrations"/*.cs | grep -v "DataContextModelSnapshot.cs" | head -n 1)
+    if [ -n "$LATEST_MIGRATION" ]; then
+        MIGRATION_BASE=$(basename "$LATEST_MIGRATION" .cs)
+        find "${PROJECT_DIR}/Migrations" -name "*.cs" -type f | grep -v "DataContextModelSnapshot.cs" | grep -v "$MIGRATION_BASE" | xargs rm -f
+    fi
+fi
+
 # Build clean
 log "→ Cleaning project..."
 dotnet clean --configuration Release
