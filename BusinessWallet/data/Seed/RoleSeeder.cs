@@ -11,10 +11,42 @@ namespace BusinessWallet.data.Seed
             {
                 var roles = new List<Role>
                 {
-                    new Role { Name = "Admin", Description = "Administrator role", CanStore = true, CanView = true, CanReceive = true, CanPresent = true, IsSystemRole = true },
-                    new Role { Name = "HR", Description = "HR Employee role", CanView = true },
-                    new Role { Name = "Developer", Description = "Developer Employee role", CanStore = true, CanView = true, CanPresent = true },
-                    new Role { Name = "Finance", Description = "Finance Employee role", CanView = true }
+                    new Role
+                    {
+                        Name = "Admin",
+                        Description = "Administrator role",
+                        CanStore = true,
+                        CanView = true,
+                        CanReceive = true,
+                        CanPresent = true,
+                        CanIssue = true,
+                        CanVerify = true,
+                        CanRevoke = true,
+                        IsSystemRole = true
+                    },
+                    new Role
+                    {
+                        Name = "HR",
+                        Description = "HR Employee role",
+                        CanView = true,
+                        CanReceive = true,
+                        CanPresent = true
+                    },
+                    new Role
+                    {
+                        Name = "Developer",
+                        Description = "Developer Employee role",
+                        CanStore = true,
+                        CanView = true,
+                        CanPresent = true
+                    },
+                    new Role
+                    {
+                        Name = "Finance",
+                        Description = "Finance Employee role",
+                        CanView = true,
+                        CanVerify = true
+                    }
                 };
 
                 context.Roles.AddRange(roles);
