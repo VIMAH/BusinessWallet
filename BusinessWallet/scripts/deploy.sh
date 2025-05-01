@@ -46,18 +46,27 @@ chmod +x "${PROJECT_DIR}/scripts/deploy.sh"
 log "→ Cleaning project..."
 dotnet clean --configuration Release
 
-# Create new migration
-log "→ Creating initial migration..."
-dotnet ef migrations add InitialCreate --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}" || {
-    log "⚠️ Migration already exists or failed to create."
-}
+# Handle migrations
+log "→ Checking for pending migrations..."
+if dotnet ef migrations list --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}" | grep -q "Pending"; then
+    log "→ Creating new migration..."
+    MIGRATION_NAME="Update_$(date '+%Y%m%d_%H%M%S')"
+    if ! dotnet ef migrations add "${MIGRATION_NAME}" --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}"; then
+        log "❌ Failed to create migration"
+        exit 1
+    fi
+    log "✔︎ Created migration: ${MIGRATION_NAME}"
+else
+    log "ℹ︎ No pending migrations found"
+fi
 
 # Update database
 log "→ Applying database migrations..."
-dotnet ef database update --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}" || {
-    log "❌ Migration failed."
+if ! dotnet ef database update --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}"; then
+    log "❌ Migration failed"
     exit 1
-}
+fi
+log "✔︎ Database migrations applied successfully"
 
 # Build project
 log "→ Building project..."
