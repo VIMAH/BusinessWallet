@@ -74,7 +74,7 @@ fi
 # Clean and build
 log "→ Cleaning project..."
 dotnet clean --configuration Release
-
+#test
 # Create and apply migration
 log "→ Creating fresh migration..."
 MIGRATION_NAME="InitialCreate_$(date '+%Y%m%d_%H%M%S')"
