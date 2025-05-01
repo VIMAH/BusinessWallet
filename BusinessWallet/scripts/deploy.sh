@@ -27,10 +27,11 @@ log "===== Starting Deployment ====="
 # Go to project
 cd "${PROJECT_DIR}"
 
-# Kill any existing app
+# Kill any existing app and ensure all dotnet processes are stopped
 log "→ Stopping any running instance..."
 pkill -f "${APP_KILL_PATTERN}" 2>/dev/null || log "ℹ︎ No running instance found."
 pkill -f dotnet || log "ℹ︎ No dotnet processes found."
+sleep 2  # Give processes time to fully stop
 
 # Update code
 log "→ Pulling latest code..."
@@ -44,8 +45,11 @@ chmod +x "${PROJECT_DIR}/scripts/deploy.sh"
 
 # Remove existing database and migrations
 log "→ Cleaning up database and migrations..."
-if [ -f "${PROJECT_DIR}/businesswallet.db" ]; then
-    rm -f "${PROJECT_DIR}/businesswallet.db"
+DB_FILE="${PROJECT_DIR}/businesswallet.db"
+if [ -f "$DB_FILE" ]; then
+    # Ensure no processes are using the database
+    lsof "$DB_FILE" 2>/dev/null | awk 'NR>1 {print $2}' | xargs -r kill -9
+    rm -f "$DB_FILE"
     log "✔︎ Removed existing database"
 fi
 
