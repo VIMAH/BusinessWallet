@@ -47,13 +47,17 @@ chmod +x "${PROJECT_DIR}/scripts/deploy.sh"
 log "→ Cleaning up database and migrations..."
 DB_FILE="${PROJECT_DIR}/businesswallet.db"
 if [ -f "$DB_FILE" ]; then
-    # Ensure no processes are using the database
-    lsof "$DB_FILE" 2>/dev/null | awk 'NR>1 {print $2}' | xargs -r kill -9
-    rm -f "$DB_FILE"
+    log "→ Found existing database file, attempting to remove..."
+    # Try to remove the database file
+    if ! rm -f "$DB_FILE"; then
+        log "⚠️ Could not remove database file, attempting to force remove..."
+        rm -f "$DB_FILE" 2>/dev/null || true
+    fi
     log "✔︎ Removed existing database"
 fi
 
 if [ -d "${PROJECT_DIR}/Migrations" ]; then
+    log "→ Removing existing migrations..."
     rm -rf "${PROJECT_DIR}/Migrations"
     mkdir -p "${PROJECT_DIR}/Migrations"
     log "✔︎ Removed existing migrations"
