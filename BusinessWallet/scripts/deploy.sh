@@ -42,13 +42,17 @@ chown -R $USER:$USER "${REPO_DIR}"
 chmod -R u+rw "${REPO_DIR}"
 chmod +x "${PROJECT_DIR}/scripts/deploy.sh"
 
-# Clean up migrations completely
-log "→ Cleaning up migrations..."
+# Remove existing database and migrations
+log "→ Cleaning up database and migrations..."
+if [ -f "${PROJECT_DIR}/businesswallet.db" ]; then
+    rm -f "${PROJECT_DIR}/businesswallet.db"
+    log "✔︎ Removed existing database"
+fi
+
 if [ -d "${PROJECT_DIR}/Migrations" ]; then
-    # Remove all migration files including the snapshot
     rm -rf "${PROJECT_DIR}/Migrations"
     mkdir -p "${PROJECT_DIR}/Migrations"
-    log "✔︎ Removed all existing migrations"
+    log "✔︎ Removed existing migrations"
 fi
 
 # Build clean
