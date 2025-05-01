@@ -42,45 +42,34 @@ chown -R $USER:$USER "${REPO_DIR}"
 chmod -R u+rw "${REPO_DIR}"
 chmod +x "${PROJECT_DIR}/scripts/deploy.sh"
 
-# Clean up duplicate migrations
+# Clean up migrations completely
 log "→ Cleaning up migrations..."
 if [ -d "${PROJECT_DIR}/Migrations" ]; then
-    # Remove any duplicate InitialCreate migrations
-    find "${PROJECT_DIR}/Migrations" -name "*InitialCreate*" -type f -delete
-    # Keep only the latest migration if there are multiple
-    LATEST_MIGRATION=$(ls -t "${PROJECT_DIR}/Migrations"/*.cs | grep -v "DataContextModelSnapshot.cs" | head -n 1)
-    if [ -n "$LATEST_MIGRATION" ]; then
-        MIGRATION_BASE=$(basename "$LATEST_MIGRATION" .cs)
-        find "${PROJECT_DIR}/Migrations" -name "*.cs" -type f | grep -v "DataContextModelSnapshot.cs" | grep -v "$MIGRATION_BASE" | xargs rm -f
-    fi
+    # Remove all migration files except the snapshot
+    find "${PROJECT_DIR}/Migrations" -name "*.cs" -type f | grep -v "DataContextModelSnapshot.cs" | xargs rm -f
+    log "✔︎ Removed all existing migrations"
 fi
 
 # Build clean
 log "→ Cleaning project..."
 dotnet clean --configuration Release
 
-# Handle migrations
-log "→ Checking for pending migrations..."
-# Try to update database first to see if there are pending changes
-if ! dotnet ef database update --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}" 2>&1 | grep -q "pending changes"; then
-    log "ℹ No pending migrations found"
-else
-    log "→ Creating new migration..."
-    MIGRATION_NAME="Update_$(date '+%Y%m%d_%H%M%S')"
-    if ! dotnet ef migrations add "${MIGRATION_NAME}" --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}"; then
-        log "❌ Failed to create migration"
-        exit 1
-    fi
-    log "✔︎ Created migration: ${MIGRATION_NAME}"
-    
-    # Now apply the new migration
-    log "→ Applying new migration..."
-    if ! dotnet ef database update --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}"; then
-        log "❌ Migration failed"
-        exit 1
-    fi
-    log "✔︎ Database migrations applied successfully"
+# Create fresh migration
+log "→ Creating fresh migration..."
+MIGRATION_NAME="InitialCreate_$(date '+%Y%m%d_%H%M%S')"
+if ! dotnet ef migrations add "${MIGRATION_NAME}" --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}"; then
+    log "❌ Failed to create migration"
+    exit 1
 fi
+log "✔︎ Created fresh migration: ${MIGRATION_NAME}"
+
+# Update database
+log "→ Applying database migrations..."
+if ! dotnet ef database update --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}"; then
+    log "❌ Migration failed"
+    exit 1
+fi
+log "✔︎ Database migrations applied successfully"
 
 # Build project
 log "→ Building project..."
