@@ -48,7 +48,10 @@ dotnet clean --configuration Release
 
 # Handle migrations
 log "→ Checking for pending migrations..."
-if dotnet ef migrations list --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}" | grep -q "Pending"; then
+# Try to update database first to see if there are pending changes
+if ! dotnet ef database update --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}" 2>&1 | grep -q "pending changes"; then
+    log "ℹ No pending migrations found"
+else
     log "→ Creating new migration..."
     MIGRATION_NAME="Update_$(date '+%Y%m%d_%H%M%S')"
     if ! dotnet ef migrations add "${MIGRATION_NAME}" --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}"; then
@@ -56,17 +59,15 @@ if dotnet ef migrations list --project "${PROJECT_DIR}" --startup-project "${PRO
         exit 1
     fi
     log "✔︎ Created migration: ${MIGRATION_NAME}"
-else
-    log "ℹ︎ No pending migrations found"
+    
+    # Now apply the new migration
+    log "→ Applying new migration..."
+    if ! dotnet ef database update --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}"; then
+        log "❌ Migration failed"
+        exit 1
+    fi
+    log "✔︎ Database migrations applied successfully"
 fi
-
-# Update database
-log "→ Applying database migrations..."
-if ! dotnet ef database update --project "${PROJECT_DIR}" --startup-project "${PROJECT_DIR}"; then
-    log "❌ Migration failed"
-    exit 1
-fi
-log "✔︎ Database migrations applied successfully"
 
 # Build project
 log "→ Building project..."
