@@ -26,6 +26,7 @@ builder.Services.AddDbContext<DataContext>(options =>
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IEmployeeRoleRepository, EmployeeRoleRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IEmployeeRoleChallengeRepository, EmployeeRoleChallengeRepository>();
 
 // ---------------------------------------------------------------------
 // 3. Services registreren
@@ -33,6 +34,7 @@ builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IEmployeeRoleService, EmployeeRoleService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IEmployeeRoleChallengeService, EmployeeRoleChallengeService>();
 builder.Services.AddAutoMapper(typeof(BusinessWallet.utils.MappingProfile));
 
 // ---------------------------------------------------------------------
@@ -75,8 +77,6 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors("AllowAll");
-// }
-
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();

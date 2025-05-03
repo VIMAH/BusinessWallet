@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BusinessWallet.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20250501184845_UpdateModel")]
-    partial class UpdateModel
+    [Migration("20250503185613_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -152,6 +152,40 @@ namespace BusinessWallet.Migrations
                     b.ToTable("EmployeeRoles");
                 });
 
+            modelBuilder.Entity("BusinessWallet.models.EmployeeRoleChallenge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Challenge")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("EmployeeRoleChallenges");
+                });
+
             modelBuilder.Entity("BusinessWallet.models.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -212,6 +246,25 @@ namespace BusinessWallet.Migrations
 
                     b.HasOne("BusinessWallet.models.Role", "Role")
                         .WithMany("EmployeeRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("BusinessWallet.models.EmployeeRoleChallenge", b =>
+                {
+                    b.HasOne("BusinessWallet.models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BusinessWallet.models.Role", "Role")
+                        .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
