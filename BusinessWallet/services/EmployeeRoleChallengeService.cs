@@ -5,69 +5,60 @@ using System.Threading.Tasks;
 using BusinessWallet.data;
 using BusinessWallet.DTOs;
 using BusinessWallet.models;
+using BusinessWallet.repository;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace BusinessWallet.services
 {
     public class EmployeeRoleChallengeService : IEmployeeRoleChallengeService
     {
+        private readonly IEmployeeRoleChallengeRepository _challengeRepository;
         private readonly DataContext _context;
-        private readonly ILogger<EmployeeRoleChallengeService> _logger;
 
-        public EmployeeRoleChallengeService(DataContext context, ILogger<EmployeeRoleChallengeService> logger)
+        public EmployeeRoleChallengeService(
+            IEmployeeRoleChallengeRepository challengeRepository,
+            DataContext context)
         {
+            _challengeRepository = challengeRepository;
             _context = context;
-            _logger = logger;
         }
 
         public async Task<ChallengeResponseDto> CreateChallengeAsync(ChallengeRequestDto dto)
         {
-            // Check of Employee + Role relatie bestaat
-            var exists = await _context.EmployeeRoles.AnyAsync(er =>
-                er.EmployeeId == dto.EmployeeId && er.RoleId == dto.RoleId);
-
-            if (!exists)
+            var existing = await _challengeRepository.GetValidChallengeAsync(dto.EmployeeId, dto.RoleId);
+            if (existing != null)
             {
-                throw new InvalidOperationException("De opgegeven medewerker en rol bestaan niet of zijn niet gekoppeld.");
+                return new ChallengeResponseDto
+                {
+                    Challenge = existing.Challenge
+                };
             }
 
-            // Genereer een sterke challenge (bijv. 256-bit)
-            var challengeBytes = new byte[32];
-            using (var rng = RandomNumberGenerator.Create())
+            var newChallenge = new models.EmployeeRoleChallenge
             {
-                rng.GetBytes(challengeBytes);
-            }
-            var challenge = Convert.ToBase64String(challengeBytes);
-
-            var challengeEntity = new EmployeeRoleChallenge
-            {
+                Id = Guid.NewGuid(),
                 EmployeeId = dto.EmployeeId,
                 RoleId = dto.RoleId,
-                Challenge = challenge,
+                Challenge = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)),
                 CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+                ExpiresAt = DateTime.UtcNow.AddMinutes(10),
                 IsUsed = false
             };
 
-            _context.EmployeeRoleChallenges.Add(challengeEntity);
-            await _context.SaveChangesAsync();
+            await _challengeRepository.AddAsync(newChallenge);
+            await _challengeRepository.SaveChangesAsync();
 
-            return new ChallengeResponseDto { Challenge = challenge };
+            return new ChallengeResponseDto
+            {
+                Challenge = newChallenge.Challenge
+            };
         }
 
         public async Task<ChallengeValidationResponseDto> ValidateChallengeAsync(ChallengeValidationRequestDto dto)
         {
-            // Zoek de laatste niet-verlopen challenge
-            var challengeEntity = await _context.EmployeeRoleChallenges
-                .Where(c => c.EmployeeId == dto.EmployeeId &&
-                            c.RoleId == dto.RoleId &&
-                            !c.IsUsed &&
-                            c.ExpiresAt > DateTime.UtcNow)
-                .OrderByDescending(c => c.CreatedAt)
-                .FirstOrDefaultAsync();
+            var challenge = await _challengeRepository.GetValidChallengeAsync(dto.EmployeeId, dto.RoleId);
 
-            if (challengeEntity == null)
+            if (challenge == null)
             {
                 return new ChallengeValidationResponseDto
                 {
@@ -76,61 +67,86 @@ namespace BusinessWallet.services
                 };
             }
 
+            // Stap 1: Signature verifiëren
             var employee = await _context.Employees.FindAsync(dto.EmployeeId);
             if (employee == null || string.IsNullOrEmpty(employee.PublicKey))
             {
                 return new ChallengeValidationResponseDto
                 {
                     IsValid = false,
-                    Message = "Geen geldige medewerker of ontbrekende public key."
+                    Message = "Publieke sleutel niet gevonden voor deze medewerker."
                 };
             }
 
+            using var rsa = RSA.Create();
+            rsa.ImportFromPem(employee.PublicKey.ToCharArray());
+
+            var dataBytes = Encoding.UTF8.GetBytes(challenge.Challenge);
+            var signatureBytes = Convert.FromBase64String(dto.Signature);
+
+            bool isSignatureValid;
             try
             {
-                bool isValid = VerifySignature(challengeEntity.Challenge, dto.Signature, employee.PublicKey);
-
-                if (isValid)
-                {
-                    // Markeer challenge als gebruikt (optioneel)
-                    challengeEntity.IsUsed = true;
-                    await _context.SaveChangesAsync();
-
-                    return new ChallengeValidationResponseDto
-                    {
-                        IsValid = true,
-                        Message = "Authenticatie succesvol."
-                    };
-                }
-                else
-                {
-                    return new ChallengeValidationResponseDto
-                    {
-                        IsValid = false,
-                        Message = "Signature validatie mislukt."
-                    };
-                }
+                isSignatureValid = rsa.VerifyData(dataBytes, signatureBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.LogError(ex, "Fout bij signature validatie");
+                isSignatureValid = false;
+            }
+
+            if (!isSignatureValid)
+            {
                 return new ChallengeValidationResponseDto
                 {
                     IsValid = false,
-                    Message = "Fout tijdens validatie."
+                    Message = "Signature is ongeldig."
                 };
             }
+
+            // Stap 2: Rol opzoeken en permissie checken
+            var role = await _context.Roles.FindAsync(dto.RoleId);
+            if (role == null)
+            {
+                return new ChallengeValidationResponseDto
+                {
+                    IsValid = false,
+                    Message = "Rol niet gevonden."
+                };
+            }
+
+            // Stap 3: Permissie checken via reflection
+            var hasPermission = CheckPermission(role, dto.Action);
+
+            if (!hasPermission)
+            {
+                return new ChallengeValidationResponseDto
+                {
+                    IsValid = false,
+                    Message = $"Je hebt geen rechten om deze actie uit te voeren: {dto.Action}."
+                };
+            }
+
+            // Markeer challenge als gebruikt
+            challenge.IsUsed = true;
+            await _challengeRepository.SaveChangesAsync();
+
+            return new ChallengeValidationResponseDto
+            {
+                IsValid = true,
+                Message = "Authenticatie en permissie succesvol gevalideerd."
+            };
         }
 
-        private bool VerifySignature(string challenge, string signatureBase64, string publicKeyPem)
+        private bool CheckPermission(models.Role role, string action)
         {
-            var signature = Convert.FromBase64String(signatureBase64);
-            var data = Encoding.UTF8.GetBytes(challenge);
+            var propertyName = $"Can{action}";
+            var prop = typeof(models.Role).GetProperty(propertyName);
+            if (prop == null || prop.PropertyType != typeof(bool))
+            {
+                return false;
+            }
 
-            using var rsa = RSA.Create();
-            rsa.ImportFromPem(publicKeyPem);
-
-            return rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            return (bool)prop.GetValue(role)!;
         }
     }
 }
