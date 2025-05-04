@@ -34,7 +34,7 @@ namespace BusinessWallet.services
                 };
             }
 
-            var newChallenge = new models.EmployeeRoleChallenge
+            var newChallenge = new EmployeeRoleChallenge
             {
                 Id = Guid.NewGuid(),
                 EmployeeId = dto.EmployeeId,
@@ -67,7 +67,6 @@ namespace BusinessWallet.services
                 };
             }
 
-            // Stap 1: Signature verifiëren
             var employee = await _context.Employees.FindAsync(dto.EmployeeId);
             if (employee == null || string.IsNullOrEmpty(employee.PublicKey))
             {
@@ -78,16 +77,10 @@ namespace BusinessWallet.services
                 };
             }
 
-            using var rsa = RSA.Create();
-            rsa.ImportFromPem(employee.PublicKey.ToCharArray());
-
-            var dataBytes = Encoding.UTF8.GetBytes(challenge.Challenge);
-            var signatureBytes = Convert.FromBase64String(dto.Signature);
-
             bool isSignatureValid;
             try
             {
-                isSignatureValid = rsa.VerifyData(dataBytes, signatureBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                isSignatureValid = VerifySignature(challenge.Challenge, dto.Signature, employee.PublicKey);
             }
             catch
             {
@@ -103,7 +96,6 @@ namespace BusinessWallet.services
                 };
             }
 
-            // Stap 2: Rol opzoeken en permissie checken
             var role = await _context.Roles.FindAsync(dto.RoleId);
             if (role == null)
             {
@@ -114,7 +106,6 @@ namespace BusinessWallet.services
                 };
             }
 
-            // Stap 3: Permissie checken via reflection
             var hasPermission = CheckPermission(role, dto.Action);
 
             if (!hasPermission)
@@ -126,7 +117,6 @@ namespace BusinessWallet.services
                 };
             }
 
-            // Markeer challenge als gebruikt
             challenge.IsUsed = true;
             await _challengeRepository.SaveChangesAsync();
 
@@ -137,16 +127,27 @@ namespace BusinessWallet.services
             };
         }
 
-        private bool CheckPermission(models.Role role, string action)
+        private bool CheckPermission(Role role, string action)
         {
-            var propertyName = $"Can{action}";
-            var prop = typeof(models.Role).GetProperty(propertyName);
+            var propertyName = $"Can{char.ToUpper(action[0])}{action.Substring(1)}";
+            var prop = typeof(Role).GetProperty(propertyName);
             if (prop == null || prop.PropertyType != typeof(bool))
             {
                 return false;
             }
 
             return (bool)prop.GetValue(role)!;
+        }
+
+        private bool VerifySignature(string challenge, string signatureBase64, string publicKeyPem)
+        {
+            using var rsa = RSA.Create();
+            rsa.ImportFromPem(publicKeyPem);
+
+            byte[] dataBytes = Encoding.UTF8.GetBytes(challenge);
+            byte[] signatureBytes = Convert.FromBase64String(signatureBase64);
+
+            return rsa.VerifyData(dataBytes, signatureBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         }
     }
 }
