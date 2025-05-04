@@ -116,6 +116,7 @@ app.Urls.Add("http://0.0.0.0:5002");
 // {
 //     var context = scope.ServiceProvider.GetRequiredService<DataContext>();
 //     context.EmployeeRoles.RemoveRange(context.EmployeeRoles);
+//     context.EmployeeRoleChallenges.RemoveRange(context.EmployeeRoleChallenges);
 //     context.Employees.RemoveRange(context.Employees);
 //     await context.SaveChangesAsync();
 // }
