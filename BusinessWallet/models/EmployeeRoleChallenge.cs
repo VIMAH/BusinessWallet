@@ -24,6 +24,7 @@ namespace BusinessWallet.models
         /// De unieke challenge string die naar de client wordt gestuurd.
         /// </summary>
         [Required]
+        [MaxLength(512)]
         public string Challenge { get; set; } = null!;
 
         /// <summary>

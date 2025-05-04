@@ -6,8 +6,8 @@ namespace BusinessWallet.repository
 {
     public interface IEmployeeRoleChallengeRepository
     {
-        Task AddAsync(EmployeeRoleChallenge challenge);
         Task<EmployeeRoleChallenge?> GetValidChallengeAsync(Guid employeeId, Guid roleId);
+        Task AddAsync(EmployeeRoleChallenge challenge);
         Task SaveChangesAsync();
     }
 }
