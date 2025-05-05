@@ -14,6 +14,7 @@ namespace BusinessWallet.data
               public DbSet<Employee> Employees => Set<Employee>();
               public DbSet<Role> Roles => Set<Role>();
               public DbSet<EmployeeRole> EmployeeRoles => Set<EmployeeRole>();
+              public DbSet<EmployeeRoleChallenge> EmployeeRoleChallenges => Set<EmployeeRoleChallenge>();
 
               protected override void OnModelCreating(ModelBuilder builder)
               {
@@ -43,6 +44,18 @@ namespace BusinessWallet.data
                             .HasOne(er => er.Role)
                             .WithMany(r => r.EmployeeRoles)
                             .HasForeignKey(er => er.RoleId);
+
+                     builder.Entity<EmployeeRoleChallenge>()
+                     .HasOne(c => c.Employee)
+                     .WithMany()
+                     .HasForeignKey(c => c.EmployeeId)
+                     .OnDelete(DeleteBehavior.Cascade);
+
+                     builder.Entity<EmployeeRoleChallenge>()
+                            .HasOne(c => c.Role)
+                            .WithMany()
+                            .HasForeignKey(c => c.RoleId)
+                            .OnDelete(DeleteBehavior.Cascade);
 
                      // ◼︎ Apply EntityTypeConfigurations
                      builder.ApplyConfiguration(new EmployeeConfiguration());

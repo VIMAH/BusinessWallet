@@ -5,7 +5,7 @@
 namespace BusinessWallet.Migrations
 {
     /// <inheritdoc />
-    public partial class ProgramNogUpdaten : Migration
+    public partial class validatie : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
