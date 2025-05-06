@@ -21,15 +21,9 @@ namespace BusinessWallet.services
                 Id = Guid.NewGuid(),
                 Name = dto.Name,
                 Description = dto.Description,
-                CanIssue = dto.CanIssue,
-                CanReceive = dto.CanReceive,
-                CanStore = dto.CanStore,
-                CanView = dto.CanView,
-                CanPresent = dto.CanPresent,
-                CanVerify = dto.CanVerify,
-                CanRevoke = dto.CanRevoke,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
+                // 🛡️ IsSystemRole NIET via API instellen, default blijft false
             };
 
             await _roleRepository.AddAsync(role);
@@ -50,15 +44,13 @@ namespace BusinessWallet.services
             var role = await _roleRepository.GetByIdAsync(roleId);
             if (role == null) return null;
 
-            if (dto.Name != null) role.Name = dto.Name;
-            if (dto.Description != null) role.Description = dto.Description;
-            if (dto.CanIssue.HasValue) role.CanIssue = dto.CanIssue.Value;
-            if (dto.CanReceive.HasValue) role.CanReceive = dto.CanReceive.Value;
-            if (dto.CanStore.HasValue) role.CanStore = dto.CanStore.Value;
-            if (dto.CanView.HasValue) role.CanView = dto.CanView.Value;
-            if (dto.CanPresent.HasValue) role.CanPresent = dto.CanPresent.Value;
-            if (dto.CanVerify.HasValue) role.CanVerify = dto.CanVerify.Value;
-            if (dto.CanRevoke.HasValue) role.CanRevoke = dto.CanRevoke.Value;
+            if (!string.IsNullOrWhiteSpace(dto.Name))
+                role.Name = dto.Name;
+
+            if (!string.IsNullOrWhiteSpace(dto.Description))
+                role.Description = dto.Description;
+
+            // 🛡️ Geen update van IsSystemRole via de API
 
             role.UpdatedAt = DateTime.UtcNow;
             await _roleRepository.UpdateAsync(role);
