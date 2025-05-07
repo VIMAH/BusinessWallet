@@ -1,14 +1,11 @@
 using System;
-using System.ComponentModel.DataAnnotations;
 
 namespace BusinessWallet.DTOs
 {
-    public class ChallengeRequestDto
+    public class AuthResponseValidateDto
     {
-        [Required]
         public Guid EmployeeId { get; set; }
-
-        [Required]
         public Guid RoleId { get; set; }
+        public Guid ChallengeId { get; set; }
     }
 }

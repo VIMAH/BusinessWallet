@@ -4,6 +4,7 @@ using BusinessWallet.repository;
 using BusinessWallet.services;
 using BusinessWallet.data.Seed;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,10 +24,10 @@ builder.Services.AddDbContext<DataContext>(options =>
 // ---------------------------------------------------------------------
 // 2. Repositories registreren
 // ---------------------------------------------------------------------
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IEmployeeRoleRepository, EmployeeRoleRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
-builder.Services.AddScoped<IEmployeeRoleChallengeRepository, EmployeeRoleChallengeRepository>();
 
 // ---------------------------------------------------------------------
 // 3. Services registreren
@@ -34,7 +35,7 @@ builder.Services.AddScoped<IEmployeeRoleChallengeRepository, EmployeeRoleChallen
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IEmployeeRoleService, EmployeeRoleService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
-builder.Services.AddScoped<IEmployeeRoleChallengeService, EmployeeRoleChallengeService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddAutoMapper(typeof(BusinessWallet.utils.MappingProfile));
 
 // ---------------------------------------------------------------------
