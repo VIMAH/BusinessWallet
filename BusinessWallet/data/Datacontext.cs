@@ -36,10 +36,7 @@ namespace BusinessWallet.data
                             .HasKey(er => new { er.EmployeeId, er.RoleId });
 
                      builder.Entity<EmployeeRole>()
-                            .HasOne(er => er.Employee)
-                            .WithMany(e => e.EmployeeRoles)
-                            .HasForeignKey(er => er.EmployeeId);
-
+                            .HasOne(er => er.Employee);
                      builder.Entity<EmployeeRole>()
                             .HasOne(er => er.Role)
                             .WithMany(r => r.EmployeeRoles)
