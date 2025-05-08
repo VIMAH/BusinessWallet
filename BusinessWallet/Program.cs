@@ -33,6 +33,7 @@ builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IEmployeeRoleRepository, EmployeeRoleRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IPolicyRulesRepository, PolicyRulesRepository>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
 // ---------------------------------------------------------------------
 // 3. Services registreren

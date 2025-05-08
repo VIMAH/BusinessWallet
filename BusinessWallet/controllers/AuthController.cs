@@ -1,56 +1,58 @@
-// File: controllers/AuthController.cs
-using System.Security.Claims;
+using System;
 using System.Threading.Tasks;
 using BusinessWallet.DTOs;
 using BusinessWallet.services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace BusinessWallet.controllers
 {
+    /// <summary>
+    /// REST-API voor de volledige Identificatie-Authenticatie-Autorisatie-flow.
+    /// </summary>
     [ApiController]
     [Route("auth")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService,
+                              ILogger<AuthController> logger)
         {
             _authService = authService;
+            _logger = logger;
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // POST /auth/challenge
+        // ─────────────────────────────────────────────────────────────────────
         /// <summary>
-        /// Endpoint om een challenge aan te maken.
-        /// POST /auth/challenge
+        /// Genereert een challenge voor de opgegeven URL.
         /// </summary>
+        /// <response code="200">Challenge succesvol aangemaakt.</response>
         [HttpPost("challenge")]
-        public async Task<ActionResult<AuthResponseChallengeDto>> CreateChallenge([FromBody] AuthRequestChallengeDto dto)
+        [ProducesResponseType(typeof(AuthChallengeResponseDto), 200)]
+        public async Task<ActionResult<AuthChallengeResponseDto>> CreateChallenge(
+            [FromBody] AuthChallengeRequestDto request)
         {
-            var response = await _authService.CreateChallengeAsync(dto);
+            var response = await _authService.CreateChallengeAsync(request);
             return Ok(response);
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // POST /auth/validate
+        // ─────────────────────────────────────────────────────────────────────
         /// <summary>
-        /// Endpoint om een access token op te halen door een gesigneerde challenge te valideren.
-        /// POST /auth/token
+        /// Valideert handtekening & policies en geeft autorisatie-uitkomst.
         /// </summary>
-        [HttpPost("token")]
-        public async Task<ActionResult<AuthResponseTokenDto>> GenerateToken([FromBody] AuthRequestTokenDto dto)
+        /// <response code="200">Validatie uitgevoerd.</response>
+        [HttpPost("validate")]
+        [ProducesResponseType(typeof(AuthValidateResponseDto), 200)]
+        public async Task<ActionResult<AuthValidateResponseDto>> Validate(
+            [FromBody] AuthValidateRequestDto request)
         {
-            var response = await _authService.GenerateTokenAsync(dto);
-            return Ok(response);
-        }
-
-        /// <summary>
-        /// Endpoint om credentials (claims) op te halen.
-        /// GET /auth/credentials
-        /// Authorization: Bearer {access_token}
-        /// </summary>
-        [Authorize]
-        [HttpGet("credentials")]
-        public async Task<ActionResult<AuthResponseCredentialsDto>> GetCredentials()
-        {
-            var response = await _authService.GetCredentialsAsync(User);
+            var response = await _authService.ValidateAsync(request);
             return Ok(response);
         }
     }
