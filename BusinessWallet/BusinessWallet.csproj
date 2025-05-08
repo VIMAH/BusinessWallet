@@ -8,15 +8,20 @@
 
   <ItemGroup>
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <PackageReference Include="jose-jwt" Version="5.1.1" />
     <!-- Swagger / OpenAPI -->
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi"        Version="8.0.15" />
-    <PackageReference Include="Swashbuckle.AspNetCore"              Version="6.6.2" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.15" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.9.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
 
-    <!-- Entity Framework Core 9 (SQLite) -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
+    <!-- Entity Framework Core 8 (SQLite) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.4">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+
+    <!-- JWT Authentication -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
   </ItemGroup>
 
 </Project>

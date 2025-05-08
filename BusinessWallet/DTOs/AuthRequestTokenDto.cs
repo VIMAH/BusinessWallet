@@ -1,9 +1,10 @@
+// File: DTOs/AuthRequestTokenDto.cs
 using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace BusinessWallet.DTOs
 {
-    public class AuthRequestValidateDto
+    public class AuthRequestTokenDto
     {
         [Required]
         public Guid ChallengeId { get; set; }

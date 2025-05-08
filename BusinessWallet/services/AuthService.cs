@@ -1,12 +1,17 @@
+// File: services/AuthService.cs
 using System;
+using System.Collections.Generic;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using BusinessWallet.DTOs;
 using BusinessWallet.data;
 using BusinessWallet.models;
+using BusinessWallet.repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using BusinessWallet.utils;
 
 namespace BusinessWallet.services
 {
@@ -14,11 +19,15 @@ namespace BusinessWallet.services
     {
         private readonly DataContext _context;
         private readonly IMemoryCache _memoryCache;
+        private readonly JwtUtils _jwtUtils;
+        private readonly IPolicyRulesRepository _policyRulesRepository;
 
-        public AuthService(DataContext context, IMemoryCache memoryCache)
+        public AuthService(DataContext context, IMemoryCache memoryCache, JwtUtils jwtUtils, IPolicyRulesRepository policyRulesRepository)
         {
             _context = context;
             _memoryCache = memoryCache;
+            _jwtUtils = jwtUtils;
+            _policyRulesRepository = policyRulesRepository;
         }
 
         public async Task<AuthResponseChallengeDto> CreateChallengeAsync(AuthRequestChallengeDto dto)
@@ -35,7 +44,7 @@ namespace BusinessWallet.services
             });
         }
 
-        public async Task<AuthResponseValidateDto> ValidateChallengeAsync(AuthRequestValidateDto dto)
+        public async Task<AuthResponseTokenDto> GenerateTokenAsync(AuthRequestTokenDto dto)
         {
             if (!_memoryCache.TryGetValue(dto.ChallengeId, out var cachedObj))
             {
@@ -76,8 +85,8 @@ namespace BusinessWallet.services
                     EmployeeId = matchedEmployee.Id,
                     RoleId = employeeRole.RoleId,
                     RequestedBy = callbackUrl,
-                    Action = "Unknown",
-                    CredentialKey = "Unknown",
+                    Action = "Authentication",
+                    CredentialKey = "N/A",
                     Result = true,
                     Reason = null,
                     CreatedAt = DateTime.UtcNow
@@ -88,17 +97,50 @@ namespace BusinessWallet.services
 
                 _memoryCache.Remove(dto.ChallengeId);
 
-                return new AuthResponseValidateDto
+                // generate encrypted JWT token
+                var token = _jwtUtils.GenerateEncryptedToken(matchedEmployee.Id, employeeRole.RoleId, dto.ChallengeId);
+
+                return new AuthResponseTokenDto
                 {
-                    EmployeeId = matchedEmployee.Id,
-                    RoleId = employeeRole.RoleId,
-                    ChallengeId = dto.ChallengeId
+                    AccessToken = token
                 };
             }
             else
             {
                 throw new InvalidOperationException("ChallengeId heeft onverwacht type.");
             }
+        }
+
+        public async Task<AuthResponseCredentialsDto> GetCredentialsAsync(ClaimsPrincipal user)
+        {
+            var employeeIdClaim = user.FindFirst("employeeId")?.Value;
+            var roleIdClaim = user.FindFirst("roleId")?.Value;
+            var challengeIdClaim = user.FindFirst("challengeId")?.Value;
+
+            if (employeeIdClaim == null || roleIdClaim == null)
+            {
+                throw new UnauthorizedAccessException("Token mist noodzakelijke claims.");
+            }
+
+            var employeeId = Guid.Parse(employeeIdClaim);
+            var roleId = Guid.Parse(roleIdClaim);
+
+            // query policy rules voor deze employee + role
+            var allowedCredentials = await _policyRulesRepository.GetAllowedCredentialsAsync(employeeId, roleId);
+
+            var response = new AuthResponseCredentialsDto();
+            foreach (var cred in allowedCredentials)
+            {
+                response.Credentials.Add(new CredentialDto
+                {
+                    Claim = cred.TargetType,   // ← gebruiken van jouw model property
+                    Value = cred.TargetValue
+                });
+
+
+            }
+
+            return response;
         }
 
         private static bool VerifySignature(string challenge, string signatureBase64, string publicKeyPem)
