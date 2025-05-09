@@ -62,5 +62,9 @@ namespace BusinessWallet.services
         {
             return await _roleRepository.GetByIdAsync(id);
         }
+        public async Task<IEnumerable<Role>> GetAllRolesAsync()
+        {
+            return await _roleRepository.GetAllAsync();
+        }
     }
 }

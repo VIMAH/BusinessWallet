@@ -10,6 +10,7 @@ using BusinessWallet.utils;
 using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Swashbuckle.AspNetCore.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +43,7 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IEmployeeRoleService, EmployeeRoleService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPolicyRulesService, PolicyRulesService>();
 builder.Services.AddAutoMapper(typeof(BusinessWallet.utils.MappingProfile));
 
 
@@ -88,6 +90,7 @@ builder.Services.AddSwaggerGen(c =>
         Title = "BusinessWallet API",
         Version = "v1"
     });
+    c.ExampleFilters(); // ✅ belangrijk!
 
     // ✅ JWT security schema
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -115,6 +118,7 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+builder.Services.AddSwaggerExamplesFromAssemblyOf<CreatePolicyRuleDtoExample>();
 
 // ---------------------------------------------------------------------
 // 6. CORS policy

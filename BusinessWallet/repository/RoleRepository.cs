@@ -35,5 +35,9 @@ namespace BusinessWallet.repository
             _context.Roles.Update(role);
             await _context.SaveChangesAsync();
         }
+        public async Task<IEnumerable<Role>> GetAllAsync()
+        {
+            return await _context.Roles.ToListAsync();
+        }
     }
 }

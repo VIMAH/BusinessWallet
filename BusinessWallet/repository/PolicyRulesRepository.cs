@@ -58,5 +58,32 @@ namespace BusinessWallet.repository
 
             return matchingRules;
         }
+
+        public async Task<PolicyRule?> GetByIdAsync(Guid id)
+        {
+            return await _context.PolicyRules.FindAsync(id);
+        }
+
+        public async Task AddAsync(PolicyRule policyRule)
+        {
+            await _context.PolicyRules.AddAsync(policyRule);
+        }
+
+        public Task UpdateAsync(PolicyRule policyRule)
+        {
+            _context.PolicyRules.Update(policyRule);
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteAsync(PolicyRule policyRule)
+        {
+            _context.PolicyRules.Remove(policyRule);
+            return Task.CompletedTask;
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 }

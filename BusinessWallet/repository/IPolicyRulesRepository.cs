@@ -12,5 +12,10 @@ namespace BusinessWallet.repository
         Task<IEnumerable<PolicyRule>> GetAllPolicyRulesAsync();
         Task<IEnumerable<PolicyRule>> GetPolicyRulesByActionTargetAsync(ActionTypeEnum action, string targetType, string targetValue);
         Task<IEnumerable<PolicyRule>> GetAllowedCredentialsAsync(Guid employeeId, Guid roleId);  // ✅ toegevoegd
+        Task<PolicyRule?> GetByIdAsync(Guid id);
+        Task AddAsync(PolicyRule policyRule);
+        Task UpdateAsync(PolicyRule policyRule);
+        Task DeleteAsync(PolicyRule policyRule);
+        Task SaveChangesAsync();
     }
 }
