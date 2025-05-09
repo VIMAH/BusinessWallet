@@ -2,6 +2,8 @@ using BusinessWallet.models;
 using BusinessWallet.models.Enums;
 using Microsoft.EntityFrameworkCore;
 using BusinessWallet.configurations;
+using BusinessWallet.models.Enums;   // ← MOET aanwezig zijn
+using System.Text.Json; // ← Voor JSON parsing
 
 namespace BusinessWallet.data
 {

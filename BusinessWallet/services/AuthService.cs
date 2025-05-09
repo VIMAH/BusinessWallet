@@ -1,164 +1,208 @@
-// File: services/AuthService.cs
 using System;
-using System.Collections.Generic;
-using System.Security.Claims;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using BusinessWallet.DTOs;
-using BusinessWallet.data;
 using BusinessWallet.models;
-using BusinessWallet.repository;
-using Microsoft.EntityFrameworkCore;
+using BusinessWallet.models.Enums;
+using BusinessWallet.repository;               // ↔ IAuthRepository
 using Microsoft.Extensions.Caching.Memory;
-using BusinessWallet.utils;
+using Microsoft.Extensions.Logging;
 
 namespace BusinessWallet.services
 {
-    public class AuthService : IAuthService
+    /// <summary>
+    /// Verwerkt de hele Identificatie-, Authenticatie- en Autorisatie-flow.
+    /// </summary>
+    public sealed class AuthService : IAuthService
     {
-        private readonly DataContext _context;
-        private readonly IMemoryCache _memoryCache;
-        private readonly JwtUtils _jwtUtils;
-        private readonly IPolicyRulesRepository _policyRulesRepository;
+        private readonly IAuthRepository _repo;     // losgekoppeld van EF-Core
+        private readonly IMemoryCache _cache;
+        private readonly ILogger<AuthService> _logger;
 
-        public AuthService(DataContext context, IMemoryCache memoryCache, JwtUtils jwtUtils, IPolicyRulesRepository policyRulesRepository)
+        private const string CachePrefix = "Challenge-";
+        private static readonly TimeSpan ChallengeTtl = TimeSpan.FromMinutes(10);
+
+        public AuthService(
+            IAuthRepository repo,
+            IMemoryCache cache,
+            ILogger<AuthService> logger)
         {
-            _context = context;
-            _memoryCache = memoryCache;
-            _jwtUtils = jwtUtils;
-            _policyRulesRepository = policyRulesRepository;
+            _repo = repo;
+            _cache = cache;
+            _logger = logger;
         }
 
-        public async Task<AuthResponseChallengeDto> CreateChallengeAsync(AuthRequestChallengeDto dto)
+        // ───────────────────────────────────────────────────────────────
+        // /auth/challenge
+        // ───────────────────────────────────────────────────────────────
+        public Task<AuthChallengeResponseDto> CreateChallengeAsync(
+            AuthChallengeRequestDto request)
         {
+            // 1) URL ontleden
+            var parsed = ParseUrl(request.Url);
+
+            // 2) Challenge genereren
             var challengeId = Guid.NewGuid();
-            var challengeString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+            var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
-            _memoryCache.Set(challengeId, (challengeString, dto.CallbackUrl), TimeSpan.FromMinutes(10));
+            // 3) Cachen
+            _cache.Set(
+                $"{CachePrefix}{challengeId}",
+                parsed with { Challenge = nonce },
+                ChallengeTtl);
 
-            return await Task.FromResult(new AuthResponseChallengeDto
+            _logger.LogInformation("Challenge aangemaakt voor {RequestedBy} – {Action}",
+                                   parsed.RequestedBy, parsed.Action);
+
+            // 4) DTO-response
+            var response = new AuthChallengeResponseDto
             {
-                Challenge = challengeString,
-                ChallengeId = challengeId
-            });
+                ChallengeId = challengeId,
+                Challenge = nonce
+            };
+            return Task.FromResult(response);   // ⚠️ CS1998 opgelost: geen async/await nodig
         }
 
-        public async Task<AuthResponseTokenDto> GenerateTokenAsync(AuthRequestTokenDto dto)
+        // ───────────────────────────────────────────────────────────────
+        // /auth/validate
+        // ───────────────────────────────────────────────────────────────
+        public async Task<AuthValidateResponseDto> ValidateAsync(
+            AuthValidateRequestDto request)
         {
-            if (!_memoryCache.TryGetValue(dto.ChallengeId, out var cachedObj))
+            // 1) Challenge ophalen
+            if (!_cache.TryGetValue($"{CachePrefix}{request.ChallengeId}",
+                                    out ParsedChallenge? cached))
             {
-                throw new InvalidOperationException("ChallengeId niet gevonden of verlopen.");
-            }
-
-            if (cachedObj is ValueTuple<string, string> cachedTuple)
-            {
-                var challenge = cachedTuple.Item1;
-                var callbackUrl = cachedTuple.Item2;
-
-                Employee? matchedEmployee = null;
-                foreach (var employee in await _context.Employees.ToListAsync())
+                _logger.LogWarning("ChallengeId {Id} niet gevonden of verlopen",
+                                   request.ChallengeId);
+                return new AuthValidateResponseDto
                 {
-                    if (string.IsNullOrEmpty(employee.PublicKey))
-                        continue;
-
-                    if (VerifySignature(challenge, dto.Signature, employee.PublicKey))
-                    {
-                        matchedEmployee = employee;
-                        break;
-                    }
-                }
-
-                if (matchedEmployee == null)
-                {
-                    throw new InvalidOperationException("Signature is ongeldig. Geen geldige medewerker gevonden.");
-                }
-
-                var employeeRole = await _context.EmployeeRoles.FirstOrDefaultAsync(er => er.EmployeeId == matchedEmployee.Id);
-                if (employeeRole == null)
-                {
-                    throw new InvalidOperationException("Geen rol gevonden voor deze medewerker.");
-                }
-
-                var log = new AuthorizationLog
-                {
-                    EmployeeId = matchedEmployee.Id,
-                    RoleId = employeeRole.RoleId,
-                    RequestedBy = callbackUrl,
-                    Action = "Authentication",
-                    CredentialKey = "N/A",
-                    Result = true,
-                    Reason = null,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _context.AuthorizationLogs.Add(log);
-                await _context.SaveChangesAsync();
-
-                _memoryCache.Remove(dto.ChallengeId);
-
-                // generate encrypted JWT token
-                var token = _jwtUtils.GenerateEncryptedToken(matchedEmployee.Id, employeeRole.RoleId, dto.ChallengeId);
-
-                return new AuthResponseTokenDto
-                {
-                    AccessToken = token
+                    IsAuthorized = false,
+                    Message = "ChallengeId niet gevonden of verlopen."
                 };
             }
-            else
+
+            // 2) Identificatie + authenticatie
+            var (employee, role) =
+                await FindEmployeeBySignatureAsync(cached.Challenge, request.Signature);
+
+            if (employee is null || role is null)
             {
-                throw new InvalidOperationException("ChallengeId heeft onverwacht type.");
-            }
-        }
-
-        public async Task<AuthResponseCredentialsDto> GetCredentialsAsync(ClaimsPrincipal user)
-        {
-            var employeeIdClaim = user.FindFirst("employeeId")?.Value;
-            var roleIdClaim = user.FindFirst("roleId")?.Value;
-            var challengeIdClaim = user.FindFirst("challengeId")?.Value;
-
-            if (employeeIdClaim == null || roleIdClaim == null)
-            {
-                throw new UnauthorizedAccessException("Token mist noodzakelijke claims.");
-            }
-
-            var employeeId = Guid.Parse(employeeIdClaim);
-            var roleId = Guid.Parse(roleIdClaim);
-
-            // query policy rules voor deze employee + role
-            var allowedCredentials = await _policyRulesRepository.GetAllowedCredentialsAsync(employeeId, roleId);
-
-            var response = new AuthResponseCredentialsDto();
-            foreach (var cred in allowedCredentials)
-            {
-                response.Credentials.Add(new CredentialDto
+                _logger.LogWarning("Signature ongeldig – Challenge {Id}", request.ChallengeId);
+                return new AuthValidateResponseDto
                 {
-                    Claim = cred.TargetType,   // ← gebruiken van jouw model property
-                    Value = cred.TargetValue
-                });
-
-
+                    IsAuthorized = false,
+                    Message = "Signature ongeldig of medewerker/rol onbekend."
+                };
             }
 
-            return response;
+            // 3) Autorisatie
+            bool allowed = await _repo.HasAllowedPolicyAsync(
+                               cached.Action, cached.CredentialKey, employee, role);
+
+            // 4) Logging naar DB
+            var log = new AuthorizationLog
+            {
+                EmployeeId = employee.Id,
+                RoleId = role.Id,
+                RequestedBy = cached.RequestedBy,
+                Action = cached.Action.ToString(),
+                CredentialKey = cached.CredentialKey,
+                AttributesJson = cached.AttributesJson,
+                Result = allowed,
+                Reason = allowed ? null : "Policy-weigering",
+                CreatedAt = DateTime.UtcNow
+            };
+            await _repo.AddAuthorizationLogAsync(log);
+            await _repo.SaveChangesAsync();
+
+            // 5) Cache cleanup
+            _cache.Remove($"{CachePrefix}{request.ChallengeId}");
+
+            return new AuthValidateResponseDto
+            {
+                IsAuthorized = allowed,
+                Message = allowed ? "U bent bevoegd" : "U bent niet bevoegd"
+            };
         }
 
-        private static bool VerifySignature(string challenge, string signatureBase64, string publicKeyPem)
+        // ───────────────────────────────────────────────────────────────
+        // HELPERS
+        // ───────────────────────────────────────────────────────────────
+
+        private async Task<(Employee? employee, Role? role)> FindEmployeeBySignatureAsync(
+            string challenge,
+            string signatureB64)
+        {
+            foreach (var employee in await _repo.GetEmployeesWithRolesAsync())
+            {
+                if (string.IsNullOrWhiteSpace(employee.PublicKey)) continue;
+
+                if (VerifySignature(challenge, signatureB64, employee.PublicKey))
+                {
+                    var role = employee.EmployeeRoles.FirstOrDefault()?.Role;
+                    return (employee, role);
+                }
+            }
+            return (null, null);
+        }
+
+        private static bool VerifySignature(
+            string challenge,
+            string signatureB64,
+            string publicKeyPem)
         {
             try
             {
                 using var rsa = RSA.Create();
                 rsa.ImportFromPem(publicKeyPem);
 
-                byte[] dataBytes = Encoding.UTF8.GetBytes(challenge);
-                byte[] signatureBytes = Convert.FromBase64String(signatureBase64);
+                byte[] data = Encoding.UTF8.GetBytes(challenge);
+                byte[] signature = Convert.FromBase64String(signatureB64);
 
-                return rsa.VerifyData(dataBytes, signatureBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                return rsa.VerifyData(
+                    data, signature,
+                    HashAlgorithmName.SHA256,
+                    RSASignaturePadding.Pkcs1);
             }
             catch
             {
                 return false;
             }
         }
+
+        private static ParsedChallenge ParseUrl(string url)
+        {
+            var uri = new Uri(url);
+            var path = uri.AbsolutePath.ToLowerInvariant();
+
+            ActionTypeEnum action;
+            if (path.Contains("/issue")) action = ActionTypeEnum.Issue;
+            else if (path.Contains("/verify")) action = ActionTypeEnum.Verify;
+            else if (path.Contains("/revoke")) action = ActionTypeEnum.Revoke;
+            else action = ActionTypeEnum.View;
+
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            string credentialKey = query["cred"] ?? "Onbekend";
+            string? attrsJson = query["attrs"];
+
+            return new ParsedChallenge
+            (
+                Challenge: string.Empty,   // wordt later ingevuld
+                Action: action,
+                RequestedBy: uri.Host,
+                CredentialKey: credentialKey,
+                AttributesJson: attrsJson
+            );
+        }
+
+        private sealed record ParsedChallenge(
+            string Challenge,
+            ActionTypeEnum Action,
+            string RequestedBy,
+            string CredentialKey,
+            string? AttributesJson);
     }
 }

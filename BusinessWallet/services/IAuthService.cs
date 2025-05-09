@@ -1,14 +1,21 @@
-// File: services/IAuthService.cs
-using System.Security.Claims;
 using System.Threading.Tasks;
 using BusinessWallet.DTOs;
 
 namespace BusinessWallet.services
 {
+    /// <summary>
+    /// Biedt de core-operaties voor de Identificatie-Authenticatie-Autorisatie-flow.
+    /// </summary>
     public interface IAuthService
     {
-        Task<AuthResponseChallengeDto> CreateChallengeAsync(AuthRequestChallengeDto dto);
-        Task<AuthResponseTokenDto> GenerateTokenAsync(AuthRequestTokenDto dto);
-        Task<AuthResponseCredentialsDto> GetCredentialsAsync(ClaimsPrincipal user);
+        /// <summary>
+        /// Genereert een challenge voor de opgegeven URL.
+        /// </summary>
+        Task<AuthChallengeResponseDto> CreateChallengeAsync(AuthChallengeRequestDto request);
+
+        /// <summary>
+        /// Valideert een handtekening en voert autorisatiecontrole uit.
+        /// </summary>
+        Task<AuthValidateResponseDto> ValidateAsync(AuthValidateRequestDto request);
     }
 }
