@@ -9,5 +9,6 @@ namespace BusinessWallet.services
         Task<bool> DeleteRoleAsync(Guid roleId);
         Task<Role?> UpdateRoleAsync(Guid roleId, RoleUpdateDto dto);
         Task<Role?> GetRoleByIdAsync(Guid id);
+        Task<IEnumerable<Role>> GetAllRolesAsync();
     }
 }
