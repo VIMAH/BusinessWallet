@@ -8,5 +8,6 @@ namespace BusinessWallet.repository
         Task<Role?> GetByIdAsync(Guid id);
         Task DeleteAsync(Role role);
         Task UpdateAsync(Role role);
+        Task<IEnumerable<Role>> GetAllAsync();
     }
 }

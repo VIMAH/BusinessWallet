@@ -45,5 +45,12 @@ namespace BusinessWallet.controllers
             if (role == null) return NotFound();
             return Ok(role);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllRoles()
+        {
+            var roles = await _roleService.GetAllRolesAsync();
+            return Ok(roles);
+        }
     }
 }

@@ -3,6 +3,7 @@ using System;
 using BusinessWallet.data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,60 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BusinessWallet.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20250503195312_validatie")]
+    partial class validatie
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.4");
-
-            modelBuilder.Entity("BusinessWallet.models.AuthorizationLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("AttributesJson")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CredentialKey")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RequestedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("Result")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoleId");
-
-                    b.HasIndex("EmployeeId", "RoleId", "RequestedBy", "CreatedAt");
-
-                    b.ToTable("AuthorizationLogs");
-                });
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
 
             modelBuilder.Entity("BusinessWallet.models.Employee", b =>
                 {
@@ -119,6 +74,9 @@ namespace BusinessWallet.Migrations
                     b.Property<string>("Gender")
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Kvk")
                         .HasMaxLength(50)
@@ -194,45 +152,38 @@ namespace BusinessWallet.Migrations
                     b.ToTable("EmployeeRoles");
                 });
 
-            modelBuilder.Entity("BusinessWallet.models.PolicyRule", b =>
+            modelBuilder.Entity("BusinessWallet.models.EmployeeRoleChallenge", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ConditionJson")
+                    b.Property<string>("Challenge")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsAllowed")
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsUsed")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Message")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TargetType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TargetValue")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UpdatedAt")
+                    b.Property<Guid>("RoleId")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.ToTable("PolicyRules");
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("EmployeeRoleChallenges");
                 });
 
             modelBuilder.Entity("BusinessWallet.models.Role", b =>
@@ -240,6 +191,27 @@ namespace BusinessWallet.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("CanIssue")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("CanPresent")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("CanReceive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("CanRevoke")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("CanStore")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("CanVerify")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("CanView")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -264,25 +236,6 @@ namespace BusinessWallet.Migrations
                     b.ToTable("Roles");
                 });
 
-            modelBuilder.Entity("BusinessWallet.models.AuthorizationLog", b =>
-                {
-                    b.HasOne("BusinessWallet.models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("BusinessWallet.models.Role", "Role")
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("Role");
-                });
-
             modelBuilder.Entity("BusinessWallet.models.EmployeeRole", b =>
                 {
                     b.HasOne("BusinessWallet.models.Employee", "Employee")
@@ -293,6 +246,25 @@ namespace BusinessWallet.Migrations
 
                     b.HasOne("BusinessWallet.models.Role", "Role")
                         .WithMany("EmployeeRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("BusinessWallet.models.EmployeeRoleChallenge", b =>
+                {
+                    b.HasOne("BusinessWallet.models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BusinessWallet.models.Role", "Role")
+                        .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

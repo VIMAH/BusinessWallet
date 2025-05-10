@@ -55,10 +55,13 @@ namespace BusinessWallet.Migrations
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    CanIssue = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CanReceive = table.Column<bool>(type: "INTEGER", nullable: false),
                     CanStore = table.Column<bool>(type: "INTEGER", nullable: false),
                     CanView = table.Column<bool>(type: "INTEGER", nullable: false),
-                    CanReceive = table.Column<bool>(type: "INTEGER", nullable: false),
                     CanPresent = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CanVerify = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CanRevoke = table.Column<bool>(type: "INTEGER", nullable: false),
                     IsSystemRole = table.Column<bool>(type: "INTEGER", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
@@ -66,6 +69,35 @@ namespace BusinessWallet.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Roles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EmployeeRoleChallenges",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    EmployeeId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    RoleId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Challenge = table.Column<string>(type: "TEXT", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsUsed = table.Column<bool>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EmployeeRoleChallenges", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_EmployeeRoleChallenges_Employees_EmployeeId",
+                        column: x => x.EmployeeId,
+                        principalTable: "Employees",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_EmployeeRoleChallenges_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -95,6 +127,16 @@ namespace BusinessWallet.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_EmployeeRoleChallenges_EmployeeId",
+                table: "EmployeeRoleChallenges",
+                column: "EmployeeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EmployeeRoleChallenges_RoleId",
+                table: "EmployeeRoleChallenges",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_EmployeeRoles_RoleId",
                 table: "EmployeeRoles",
                 column: "RoleId");
@@ -103,6 +145,9 @@ namespace BusinessWallet.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "EmployeeRoleChallenges");
+
             migrationBuilder.DropTable(
                 name: "EmployeeRoles");
 
